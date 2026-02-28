@@ -1,0 +1,550 @@
+---
+title: Ejercicio 2
+output:
+  html_document: default
+  pdf_document:
+    latex_engine: xelatex
+header-includes:
+  - \usepackage{ragged2e}
+  - \justifying
+date: "2026-03-06"
+---
+### 2. Estudie el mercado laboral en México siguiendo estos pasos: [2 horas, 0.5 puntos cada inciso]. Documente su trabajo para que se pueda replicar.
+
+\
+
+#### **(a) Obtenga del INEGI una serie anual del producto interno bruto en términos reales, genere la serie de su tasa de cambio anual, calcule su volatilidad. (Serie 1)**
+
+\
+
+```{r setup, echo=FALSE,include=FALSE, message=FALSE, warning=FALSE}
+# Configuración incial:
+
+rm(list = ls())
+Sys.setlocale("LC_ALL", "en_US.UTF-8")
+options(scipen = 999)
+
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(kableExtra)
+library(knitr)
+```
+
+#### Prioducto Interno Bruto
+
+El PIB es un indicador macroeconómico que mide el valor monetario de todos los bienes y servicios de consumo final producidos al interior de una economía en un periodo determinado de tiempo. De acuerdo con la metodología de cuentas nacionales del INEGI, el PIB puede expresarse a precios corrientes o a precios constantes.
+
+El presente trabajo emplea el PIB en términos reales, es decir, el PIB valuado a precios constantes (base 2018). Esta medida elimina el efecto de las variaciones en los precios, permitiendo analizar la evolución del volumen físico de la producción a lo largo del periodo de tiempo analizado. Por lo tanto, el PIB real refleja cambios en la actividad económica y no en la inflación.
+
+\
+
+#### Resultados
+
+Los resultados de los cálculos realizados se presentan en la siguiente tabla con una serie histórica de 2003-2024.
+``` {r, echo=FALSE}
+
+file_path <- "BASES DE DATOS/PIB REAL ANUAL (INEGI).xlsx"
+
+pb <- read_excel(file_path)
+
+#Tasa de cambio anual
+pb <- pb %>%
+  arrange(Año) %>%
+  mutate(
+    g_p = 100 * (log(PIB_real) - log(lag(PIB_real)))
+  )
+
+# Volatilidad
+
+volatilidad <- sd(pb$g_p, na.rm = TRUE)
+
+```
+
+```{r tabla_final_PIB, echo=FALSE}
+#Carga de los datos
+tabla_final_PIB <- pb %>%
+  transmute(
+    Año,
+    PIB_real = scales::comma(PIB_real),
+    `Tasa de cambio anual (%)` = ifelse(is.na(g_p), NA, round(g_p, 3)),
+    `Volatilidad (%)` = round(volatilidad, 3)
+  )
+
+knitr::kable(
+  tabla_final_PIB,
+  caption = "Serie 1: PIB real anual, tasa de cambio anual y volatilidad (2008-2024)",
+  align = "c"
+) %>%
+  kableExtra::kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::footnote(
+    general = "Fuente: Elaboración propia con datos de INEGI.",
+    general_title = ""
+  )
+```
+
+\
+
+#### **(b) Obtenga del INEGI una serie anual de los salarios en términos reales en México, genere una serie de su tasa de cambio anual, calcule la volatilidad de dicha serie. (Serie 2)**
+
+\
+
+#### Salarios reales
+
+El salario real es una medida del poder adquisitivo de las remuneraciones laborales, refleja el valor de los ingresos laborales una vez descontado el efecto de la inflación, el salario real permite analizar la evolución efectiva de los ingresos laborales en términos del volumen de bienes y servicios que pueden adquirirse a lo largo del tiempo.
+
+En el presente trabajo se utiliza el **Índice global de remuneraciones medias reales de los sectores económicos (IGREMSE)**, publicado por el INEGI y expresado como un índice con base 2018 = 100. Este indicador mide la evolución de las remuneraciones laborales en términos reales, es decir, ajustadas por variaciones en el nivel general de precios. Por lo tanto, los valores observados no representan montos monetarios en pesos, sino niveles relativos respecto al año base.
+
+Debido a que la serie original se encuentra disponible con una frecuencia mayor a la anual, se construyó una serie anual mediante el promedio simple, calculando la media muestral ( $\bar{X} = \frac{1}{n}\sum_{i=1}^{n} X_i$) de los valores observados dentro de cada año. Este procedimiento permite obtener una medida representativa del nivel promedio anual de los salarios reales.
+
+\
+
+#### Resultados
+
+Los resultados de los cálculos realizados se presentan en la siguiente tabla con una serie histórica de 2008-2024.
+
+``` {r, echo=FALSE}
+
+file_path <- "BASES DE DATOS/SALARIO ANUAL (INEGI).xlsx"
+
+sr <- read_excel(file_path)
+
+#Tasa de cambio anual
+sr <- sr %>%
+  arrange(Año) %>%
+  mutate(
+    g_s = 100 * (log(Salario_real) - log(lag(Salario_real)))
+  )
+
+```
+
+``` {r, echo=FALSE}
+# Volatilidad 
+
+volatilidad_sr <- sd(sr$g_s, na.rm = TRUE)
+
+```
+
+```{r tabla_final_sr, echo=FALSE}
+#Carga de los datos
+tabla_final_sr <- sr %>%
+  transmute(
+    Año,
+    Salario_real = scales::comma(Salario_real),
+    `Tasa de cambio anual (%)` = ifelse(is.na(g_s), NA, round(g_s, 3)),
+    `Volatilidad (%)` = round(volatilidad_sr, 3)
+  )
+
+knitr::kable(
+  tabla_final_sr,
+  caption = "Serie 2: Salario real anual, tasa de cambio anual y volatilidad (2008-2024)",
+  align = "c"
+) %>%
+  kableExtra::kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::footnote(
+    general = "Fuente: Elaboración propia con datos de INEGI.",
+    general_title = ""
+  )
+```
+\
+
+#### **(c) Obtenga del INEGI una serie anual de desocupación en México, genere una serie de su tasa de cambio anual, calcule la volatilidad de dicha serie. (Serie 3)**
+
+\
+
+#### Desocupación
+
+La desocupación refiere a la situación de las personas que, formando parte de la fuerza de trabajo, no tienen empleo, pero están disponibles para trabajar y realizaron acciones de búsqueda de trabajo durante el periodo de referencia. En el presente trabajo se utiliza la **tasa de desocupación**, la cual mide la proporción de la población económicamente activa que se encuentra desocupada y se expresa en porcentaje.
+
+Dado que la serie disponible en el INEGI se reporta con frecuencia mensual, se construye una serie anual calculando el la media muestral de los valores observados dentro de cada año ( $\bar{X} = \frac{1}{n}\sum_{i=1}^{n} X_i$). Este procedimiento permite obtener una medida representativa de la **desocupación promedio anual** y facilita la comparación con otras series anuales utilizadas en el análisis.
+
+\
+
+#### Resultados
+
+Los resultados de los cálculos realizados se presentan en la siguiente tabla con una serie histórica de 2005-2025.
+
+``` {r, echo=FALSE}
+
+file_path <- "BASES DE DATOS/DESOCUPACION (INEGI).xlsx"
+
+da <- read_excel(file_path)
+
+#Tasa de cambio anual
+da <- da %>%
+  arrange(Año) %>%
+  mutate(
+    g_d = 100 * (log(Desocupacion) - log(lag(Desocupacion)))
+  )
+```
+
+``` {r, echo=FALSE}
+# Volatilidad
+
+volatilidad_da <- sd(da$g_d, na.rm = TRUE)
+
+```
+
+```{r tabla_final_da, echo=FALSE}
+#Carga de los datos
+tabla_final_da <- da %>%
+  transmute(
+    Año,
+    Desocupacion = round(Desocupacion,2),
+    `Tasa de cambio anual (%)` = ifelse(is.na(g_d), NA, round(g_d, 3)),
+    `Volatilidad (%)` = round(volatilidad_da, 3)
+  )
+
+knitr::kable(
+  tabla_final_da,
+  caption = "Serie 3: Desocupación anual, tasa de cambio anual y volatilidad (2008-2024)",
+  align = "c"
+) %>%
+  kableExtra::kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::footnote(
+    general = "Fuente: Elaboración propia con datos de INEGI.",
+    general_title = ""
+  )
+```
+\
+
+#### **(d) Obtenga del INEGI una serie anual de la participación laboral en México, genere una serie de su tasa de cambio anual, calcule la volatilidad de dicha serie. (Serie 4)**
+
+\
+
+#### Participación laboral
+
+La participación laboral se refiere al grado en que la población en edad de trabajar se encuentra activa dentro del mercado laboral. En términos estadísticos, se mide mediante la tasa de participación, la cual expresa la proporción de la población de 15 años y más que forma parte de la PEA, es decir, personas que se encuentran ocupadas o que buscan activamente empleo.
+
+Formalmente, la tasa de participación laboral se define como:
+
+\[
+TP_t = \frac{\text{PEA}_t}{\text{Población de 15 años y más}_t} \times 100
+\]
+
+donde:
+
+\
+\(\text{PEA}_t\) representa la población económicamente activa en el periodo \(t\).  
+\
+\(\text{Población de 15 años y más}_t\) corresponde al total de personas en edad laboral.
+
+Dado que la serie disponible en el INEGI se reporta con frecuencia mensual, en este trabajo se construye una serie anual mediante el cálculo de la media muestral de los valores observados dentro de cada año $(\bar{X} = \frac{1}{n}\sum_{i=1}^{n} X_i)$.
+
+
+Este procedimiento permite obtener una medida representativa de la **participación laboral promedio anual**, facilitando la comparación con las demás series anuales utilizadas en el análisis.
+
+\
+
+#### Resultados
+
+Los resultados de los cálculos realizados se presentan en la siguiente tabla con una serie histórica de 2005-2025.
+
+``` {r, echo=FALSE}
+
+file_path <- "BASES DE DATOS/PARTICIPACION (INEGI).xlsx"
+
+pa <- read_excel(file_path)
+
+#Tasa de cambio anual
+pa <- pa %>%
+  arrange(Año) %>%
+  mutate(
+    g_pa = 100 * (log(Participacion) - log(lag(Participacion)))
+  )
+```
+
+``` {r, echo=FALSE}
+# Volatilidad
+
+volatilidad_pa <- sd(pa$g_pa, na.rm = TRUE)
+
+```
+
+```{r tabla_final_pa, echo=FALSE}
+#Carga de los datos
+tabla_final_pa <- pa %>%
+  transmute(
+    Año,
+    Participacion = round(Participacion,2),
+    `Tasa de cambio anual (%)` = ifelse(is.na(g_pa), NA, round(g_pa, 3)),
+    `Volatilidad (%)` = round(volatilidad_pa, 3)
+  )
+
+knitr::kable(
+  tabla_final_pa,
+  caption = "Serie 4: Participación anual, tasa de cambio anual y volatilidad (2008-2024)",
+  align = "c"
+) %>%
+  kableExtra::kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::footnote(
+    general = "Fuente: Elaboración propia con datos de INEGI.",
+    general_title = ""
+  )
+```
+\
+
+#### **(e) Obtenga del INEGI una serie anual de la tasa de ocupación en el sector informal en México, genere una serie de su tasa de cambio anual, calcule la volatilidad de dicha serie. (Serie 5)**
+
+\
+
+#### Ocupación en el sector informal
+
+La ocupación en el sector informal se refiere a las personas que trabajan en unidades económicas que operan fuera del marco regulatorio formal, es decir, actividades productivas que no se encuentran constituidas legalmente como empresas y que generalmente presentan bajos niveles de organización, registro fiscal y protección laboral.
+
+En este trabajo se utiliza la tasa de ocupación en el sector informal 1 (TOSI1), publicada por el INEGI. Este indicador mide la proporción de la población ocupada que trabaja dentro del sector informal respecto al total de personas ocupadas, y se expresa en porcentaje.
+
+Formalmente, la tasa puede representarse como:
+
+\[
+TOSI_t = \frac{\text{Ocupación en el sector informal}_t}{\text{Población ocupada}_t} \times 100
+\]
+
+donde:
+
+\
+\(\text{Ocupación en el sector informal}_t\) representa el número de personas ocupadas en unidades económicas informales en el periodo \(t\).  
+\
+\(\text{Población ocupada}_t\) corresponde al total de personas ocupadas en la economía.
+
+\
+Dado que la serie disponible en el INEGI se reporta con frecuencia mensual, en este trabajo se construye una serie anual mediante el cálculo de la media muestral de los valores observados dentro de cada año $(\bar{X} = \frac{1}{n}\sum_{i=1}^{n} X_i)$.
+
+\
+
+#### Resultados
+Los resultados de los cálculos realizados se presentan en la siguiente tabla con una serie histórica de 2005-2025.
+
+``` {r, echo=FALSE}
+
+file_path <- "BASES DE DATOS/OCUPACION INFORMAL (INEGI).xlsx"
+
+oi <- read_excel(file_path)
+
+#Tasa de cambio anual
+oi <- oi %>%
+  arrange(Año) %>%
+  mutate(
+    g_oi = 100 * (log(Ocupacion_informal) - log(lag(Ocupacion_informal)))
+  )
+```
+
+``` {r, echo=FALSE}
+# Volatilidad
+
+volatilidad_oi <- sd(oi$g_oi, na.rm = TRUE)
+
+```
+
+```{r tabla_final_oi, echo=FALSE}
+#Carga de los datos
+tabla_final_oi <- oi %>%
+  transmute(
+    Año,
+    Ocupacion_informal = round(Ocupacion_informal,2),
+    `Tasa de cambio anual (%)` = ifelse(is.na(g_oi), NA, round(g_oi, 3)),
+    `Volatilidad (%)` = round(volatilidad_oi, 3)
+  )
+
+knitr::kable(
+  tabla_final_oi,
+  caption = "Serie 5: Tasa de ocupación en el sector informal, tasa de cambio anual y volatilidad (2008-2024)",
+  align = "c"
+) %>%
+  kableExtra::kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::footnote(
+    general = "Fuente: Elaboración propia con datos de INEGI.",
+    general_title = ""
+  )
+```
+
+\
+
+#### **(f) Obtenga del INEGI una serie anual de la tasa de informalidad laboral en México, genere una serie de su tasa de cambio anual, calcule la volatilidad de dicha serie. (Serie 6)**
+
+\
+
+#### Informalidad laboral
+
+La informalidad laboral describe la situación de las personas ocupadas cuyo vínculo laboral no está protegido por el marco institucional, independientemente de si trabajan en unidades económicas formales o informales. En este trabajo se utiliza la Tasa de Informalidad Laboral 1 (TIL1) publicada por el INEGI, la cual mide el porcentaje de la población ocupada que se encuentra en condiciones de informalidad y se expresa en términos porcentuales.
+
+Formalmente, la tasa de informalidad laboral puede expresarse como:
+
+\[
+TIL_t = \frac{\text{Ocupación informal}_t}{\text{Población ocupada}_t} \times 100
+\]
+
+donde:
+
+\
+\(\text{Ocupación informal}_t\) representa el número de personas ocupadas en condiciones de informalidad en el periodo \(t\).  
+\
+\(\text{Población ocupada}_t\) corresponde al total de personas ocupadas en el periodo \(t\).
+
+Dado que la serie disponible en el INEGI se reporta con frecuencia mensual, en este trabajo se construye una serie anual mediante el cálculo de la media muestral de los valores observados dentro de cada año $(\bar{X} = \frac{1}{n}\sum_{i=1}^{n} X_i)$.
+
+\
+
+#### Resultados
+Los resultados de los cálculos realizados se presentan en la siguiente tabla con una serie histórica de 2005-2025.
+
+``` {r, echo=FALSE}
+
+file_path <- "BASES DE DATOS/TASA INFORMAL (INEGI).xlsx"
+
+li <- read_excel(file_path)
+
+#Tasa de cambio anual
+li <- li %>%
+  arrange(Año) %>%
+  mutate(
+    g_li = 100 * (log(Tasa_informalidad) - log(lag(Tasa_informalidad)))
+  )
+```
+
+``` {r, echo=FALSE}
+# Volatilidad
+
+volatilidad_li <- sd(li$g_li, na.rm = TRUE)
+
+```
+
+```{r tabla_final_li, echo=FALSE}
+#Carga de los datos
+tabla_final_li <- li %>%
+  transmute(
+    Año,
+    Tasa_informalidad = round(Tasa_informalidad,2),
+    `Tasa de cambio anual (%)` = ifelse(is.na(g_li), NA, round(g_li, 3)),
+    `Volatilidad (%)` = round(volatilidad_li, 3)
+  )
+
+knitr::kable(
+  tabla_final_li,
+  caption = "Serie (6): Tasa de informalidad laboral, tasa de cambio anual y volatilidad (2008-2024)",
+  align = "c"
+) %>%
+  kableExtra::kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::footnote(
+    general = "Fuente: Elaboración propia con datos de INEGI.",
+    general_title = ""
+  )
+```
+
+\
+
+#### **(g) Grafique las series (las de tasas de cambios) de forma que se puedan comparar.**
+
+\
+
+```{r grafica_comparativa, echo=FALSE, fig.align = "center", warning=FALSE, message=FALSE}
+library(tidyr)
+
+#Unimos todas las tasas de cambio
+g_all <- bind_rows(
+  pb %>% transmute(Año, Serie = "PIB real", g = g_p),
+  sr %>% transmute(Año, Serie = "Salario real", g = g_s),
+  da %>% transmute(Año, Serie = "Desocupación", g = g_d),
+  pa %>% transmute(Año, Serie = "Participación laboral", g = g_pa),
+  oi %>% transmute(Año, Serie = "Ocupación informal", g = g_oi),
+  li %>% transmute(Año, Serie = "Informalidad laboral", g = g_li)
+) %>%
+  filter(!is.na(g), Año != 2008) %>%
+  arrange(Año)
+
+#Gráfica comparativa
+ggplot(g_all, aes(x = Año, y = g, color = Serie)) +
+  geom_line(size = 1) +
+  geom_point(size = 1.5) +
+  labs(
+    title = "Comparación de tasas de cambio anual",
+    x = "Año",
+    y = "Tasa de cambio anual (%)",
+    color = "Serie"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(hjust = 0.5)
+    ) +
+    scale_y_continuous(
+  breaks = seq(-25, 30, by = 5)
+)
+  
+```
+\
+
+#### **(h) Calcule la matriz de varianzas y covarianzas entre todas las series (en su versión en tasa de cambios).**
+
+\
+
+```{r matriz_covarianzas, echo=FALSE}
+
+#Unimos todas las series
+
+base_cov <- pb %>%
+  select(Año, PIB = g_p) %>%
+  left_join(sr %>% select(Año, Salario_real = g_s), by = "Año") %>%
+  left_join(da %>% select(Año, Desocupacion = g_d), by = "Año") %>%
+  left_join(pa %>% select(Año, Participacion = g_pa), by = "Año") %>%
+  left_join(oi %>% select(Año, Ocupacion_informal = g_oi), by = "Año") %>%
+  left_join(li %>% select(Año, Informalidad_laboral = g_li), by = "Año")
+
+#Eliminamos
+
+base_cov <- base_cov %>%
+  filter(Año != 2008) %>%
+  na.omit()
+
+#Matriz var-cov
+
+matriz_cov <- base_cov %>%
+  select(-Año) %>%
+  cov()
+
+
+#Mostrar tabla
+
+knitr::kable(
+  round(matriz_cov, 3),
+  caption = "Matriz de varianzas y covarianzas de las tasas de cambio",
+  align = "c"
+)
+```
+
+\
+
+#### **(i) Explique en qué medida los niveles y las covarianzas de las series son o no consistentes con los hechos estilizados que se discutieron en clase para EEUU. Interpreta las correlaciones de la tasa de ocupación en el sector informal y la tasa de informalidad laboral con las demas series.**
+
+\
+
+Con base en la gráfica comparativa y en la matriz de varianzas-covarianzas calculadas, podemos comentar que los resultados son parcialmente consistentes con los hechos estilizados discutidos en clase para EE.UU., aunque también presentan diferencias importantes asociadas a la estructura del mercado laboral mexicano y a la naturaleza de las series utilizadas.
+
+Primero, con respecto al hecho estilizado de que el desempleo es relativamente estable en el tiempo, los datos muestran que esto no se cumple plenamente en la muestra analizada. La serie de desocupación presenta la mayor volatilidad entre todas las variables (varianza ≈ 191.8), lo que implica fluctuaciones mucho más pronunciadas que las observadas en el PIB o en los salarios reales. Esto se confirma visualmente en la gráfica, donde la desocupación exhibe cambios abruptos, indicando que el mercado laboral mexicano responde de forma más sensible a perturbaciones cíclicas o estructurales. Por lo tanto, la idea de una tasa natural relativamente estable se observa de manera muy limitada.
+
+Segundo, el hecho estilizado que establece que el desempleo es contracíclico sí encuentra un respaldo claro en los resultados. La covarianza entre PIB y desocupación es fuertemente negativa (−44.432), lo que indica que cuando el crecimiento del producto aumenta, la tasa de desocupación tiende a disminuir, y viceversa. Este patrón es coherente con la evidencia macroeconómica estándar (Ley de Okun): en fases expansivas aumenta la demanda laboral y cae el desempleo, mientras que en recesiones ocurre lo contrario. Asimismo, la covarianza negativa entre salarios reales y desocupación (−20.813) sugiere que los salarios no se comportan como una variable fuertemente procíclica, sino más bien relativamente acíclica o moderadamente procíclica, lo cual también es consistente con los hechos estilizados tradicionales.
+
+En cuanto a la participación laboral, la covarianza positiva con el PIB (7.611) sugiere un comportamiento procíclico moderado: en periodos de expansión económica más personas ingresan o permanecen en el mercado laboral. Al mismo tiempo, la covarianza negativa con la desocupación (−19.273) refleja que aumentos en el desempleo suelen acompañarse de reducciones en la participación, posiblemente debido a efectos de desaliento laboral. Esto muestra una dinámica coherente con mecanismos típicos del mercado de trabajo, aunque con mayor sensibilidad que la observada en economías desarrolladas.
+
+Respecto a las variables centrales solicitadas la tasa de ocupación en el sector informal y la tasa de informalidad laboral, ambas muestran una relación positiva entre sí (covarianza ≈ 3.738), lo cual es esperado dado que capturan dimensiones cercanas del fenómeno de informalidad. Sin embargo, su relación con el ciclo económico es más débil que la del desempleo: la covarianza con el PIB es positiva pero pequeña (2.802 y 1.389, respectivamente). Esto sugiere que la informalidad no se comporta como una variable claramente contracíclica ni procíclica, sino que responde parcialmente a factores estructurales del mercado laboral mexicano. En términos económicos, la informalidad puede funcionar simultáneamente como mecanismo de ajuste ante choques negativos, absorbiendo trabajadores cuando cae el empleo formal, y como sector que también se expande durante periodos de crecimiento, lo cual explica la ausencia de una relación fuerte con el ciclo.
+
+Finalmente, al interpretar conjuntamente los resultados, se observa que el patrón general del ciclo económico se mantiene: el PIB se mueve en sentido contrario a la desocupación y en el mismo sentido que algunas variables laborales agregadas. Sin embargo, la elevada volatilidad del desempleo y la debilidad del vínculo cíclico de la informalidad indican que el mercado laboral mexicano presenta características estructurales distintas a las de EE.UU., donde la informalidad tiene un peso mucho menor.
